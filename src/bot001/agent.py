@@ -16,6 +16,13 @@ from bot001.session import SessionManager
 from bot001.tools.registry import ToolRegistry
 
 
+def _safe_json(s: str) -> dict:
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 class LLMClient:
     """LLM 调用客户端"""
 
@@ -114,7 +121,7 @@ class Agent:
                 role="assistant",
                 content=choice.get("content", ""),
                 tool_calls=[
-                    ToolCall(id=tc["id"], name=tc["function"]["name"], arguments=json.loads(tc["function"].get("arguments", "{}")))
+                    ToolCall(id=tc["id"], name=tc["function"]["name"], arguments=_safe_json(tc["function"].get("arguments", "{}")))
                     for tc in choice.get("tool_calls", [])
                 ] or None,
             )
