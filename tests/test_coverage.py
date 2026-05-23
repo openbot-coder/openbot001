@@ -1074,20 +1074,23 @@ def test_console_main_eof():
 
 
 def test_console_module_main():
-    """测试 console 模块的 __main__ 入口"""
-    import subprocess
-    # 用 python -m 方式运行 console 作为 __main__
-    result = subprocess.run(
-        [
-            "python3", "-c",
-            "import sys; sys.path.insert(0, 'src'); exec(open('src/bot001/console.py').read())"
-        ],
-        input="/exit\n",
-        capture_output=True,
-        text=True,
-        cwd="/home/openbot/openbot001",
-        timeout=5,
-        env={**os.environ, "PYTHONPATH": "/home/openbot/openbot001/src"},
-    )
-    # 只要不崩溃就行
-    assert result.returncode in (0, 1)
+    """测试 console 模块的 __main__ 入口 — 用 runpy 模拟 __main__ 执行"""
+    import runpy, sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+    # 切换到执行目录
+    orig_cwd = os.getcwd()
+    os.chdir(os.path.join(os.path.dirname(__file__), '..'))
+    try:
+        # 用 runpy 模拟 python -m bot001.console
+        # 这会触发 if __name__ == "__main__": main()
+        import io
+        old_stdin = sys.stdin
+        sys.stdin = io.StringIO("/exit\n")
+        try:
+            runpy.run_module("bot001.console", run_name="__main__")
+        except (SystemExit, EOFError):
+            pass
+        finally:
+            sys.stdin = old_stdin
+    finally:
+        os.chdir(orig_cwd)
