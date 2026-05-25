@@ -198,10 +198,11 @@ class WikiEngine:
             return issues
 
         # 检查孤立页面（无 wikilinks 指向它）
-        all_content = " ".join(p.read_text() for p in pages)
+        page_contents = {p: p.read_text() for p in pages}
+        all_content = " ".join(page_contents.values())
         for p in pages:
             stem = p.stem
-            if f"[[{stem}]]" not in all_content.replace(p.read_text(), ""):
+            if f"[[{stem}]]" not in all_content.replace(page_contents[p], ""):
                 issues.append(f"🔗 孤立页面: [[{stem}]] 未被其他页面引用")
 
         # 检查破损 wikilink

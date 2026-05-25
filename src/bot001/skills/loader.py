@@ -61,7 +61,8 @@ def load_skills(registry: "ToolRegistry", skills_dir: str = "./skills") -> list[
                 loaded.append(skill_name)
 
         except Exception as e:
-            print(f"[bot001] Failed to load skill '{skill_name}': {e}")
+            import logging
+            logging.getLogger("bot001").warning("Failed to load skill '%s': %s", skill_name, e)
 
     return loaded
 

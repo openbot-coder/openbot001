@@ -70,6 +70,16 @@ def test_shell_stderr(tmp_path):
     print("✅ shell_stderr")
 
 
+def test_shell_timeout(tmp_path):
+    from bot001.tools.builtin import shell
+
+    # timeout should be enforced
+    r = shell("cat /dev/urandom", timeout=1)
+    # should return error message about timeout
+    assert "timeout" in r.lower() or "timed out" in r.lower()
+    print("✅ shell_timeout")
+
+
 def test_shell_work_dir(tmp_path):
     from bot001.tools.builtin import shell
 
@@ -149,11 +159,11 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as td:
         test_echo()
         test_grep_file_not_found()
-        test_grep_on_file(Path(td) / "f")
-        test_grep_on_dir(Path(td) / "d")
+        test_grep_on_file(Path(td))
+        test_grep_on_dir(Path(td))
         test_shell_whitelist()
-        test_shell_stderr()
-        test_shell_timeout()
+        test_shell_stderr(Path(td))
+        test_shell_timeout(Path(td))
         test_shell_work_dir(Path(td))
         test_file_read_not_found()
         test_file_read_ok(Path(td))

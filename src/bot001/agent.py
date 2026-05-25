@@ -9,11 +9,14 @@ import httpx
 
 from bot001.config import AgentConfig
 from bot001.executor import Executor
+from bot001.logger import setup_logger
 from bot001.message import Message, ToolCall
 from bot001.memory.short_term import ShortTermMemory
 from bot001.memory.long_term import LongTermMemory
 from bot001.session import SessionManager
 from bot001.tools.registry import ToolRegistry
+
+log = setup_logger()
 
 
 def _safe_json(s: str) -> dict:
@@ -83,6 +86,7 @@ class Agent:
 
     def run(self, session_id: str, user_message: str) -> str:
         """执行一轮用户输入"""
+        log.info("Starting session=%s, message=%r", session_id, user_message[:80])
         # 短期记忆：当前对话缓冲
         short_term = ShortTermMemory()
         history = self.long_term.get_messages(session_id)
@@ -98,6 +102,7 @@ class Agent:
                 snippet = msg.content[:200]
                 snippets.append(f"- [{msg.role}] {snippet}")
             mem_context = "Related past:\n" + "\n".join(snippets)
+            log.debug("Found %d relevant memories", len(relevant))
 
         # 保存用户消息
         user_msg = Message(role="user", content=user_message)
@@ -114,12 +119,22 @@ class Agent:
         # ReAct 循环
         tools = self.registry.get_schemas()
         for turn in range(self.config.max_turns):
-            response = self.llm.chat(messages, tools)
-            choice = response["choices"][0]["message"]
+            log.debug("Turn %d/%d, messages=%d", turn + 1, self.config.max_turns, len(messages))
+            try:
+                response = self.llm.chat(messages, tools)
+            except Exception as e:
+                log.error("LLM call failed: %s", e)
+                return f"LLM 调用失败: {e}"
+
+            try:
+                choice = response["choices"][0]["message"]
+            except (KeyError, IndexError, TypeError) as e:
+                log.error("LLM response format error: %s", e)
+                return f"LLM 返回格式异常: {e}\n原始响应: {response}"
 
             assistant_msg = Message(
                 role="assistant",
-                content=choice.get("content", ""),
+                content=choice.get("content") or "",
                 tool_calls=[
                     ToolCall(id=tc["id"], name=tc["function"]["name"], arguments=_safe_json(tc["function"].get("arguments", "{}")))
                     for tc in choice.get("tool_calls", [])

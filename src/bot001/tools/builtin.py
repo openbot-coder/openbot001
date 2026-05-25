@@ -43,7 +43,7 @@ def grep(pattern: str, path: str = ".") -> str:
         return f"Error: {e}"
 
 
-def shell(command: str, work_dir: str = "") -> str:
+def shell(command: str, work_dir: str = "", timeout: int = 30) -> str:
     """执行 shell 命令（白名单限制）"""
     cmd = command.strip().split()[0] if command.strip() else ""
     if cmd not in SHELL_WHITELIST:
@@ -56,7 +56,7 @@ def shell(command: str, work_dir: str = "") -> str:
             shell=True,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=timeout,
             cwd=cwd,
         )
         output = result.stdout
@@ -64,7 +64,7 @@ def shell(command: str, work_dir: str = "") -> str:
             output += f"\n[stderr] {result.stderr}"
         return output[:4000]  # 截断
     except subprocess.TimeoutExpired:
-        return "Error: Command timed out (30s)"
+        return f"Error: Command timed out ({timeout}s)"
     except Exception as e:
         return f"Error: {e}"
 
