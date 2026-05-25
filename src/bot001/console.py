@@ -49,7 +49,7 @@ def main():
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            user_input = sys.stdin.buffer.readline().decode("utf-8", errors="replace").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nGoodbye!")
             break
